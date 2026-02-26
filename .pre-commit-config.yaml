@@ -24,4 +24,4 @@ repos:
     hooks:
       - id: prettier
         additional_dependencies: ["prettier@3.3.3"]
-        files: "\.(js|ts|tsx|json|md|yaml|yml)$"
+        files: '\.(js|ts|tsx|json|md|yaml|yml)$'
