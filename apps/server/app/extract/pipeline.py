@@ -25,14 +25,18 @@ def parse_document(
 
     extractor = _get_extractor()
     try:
-        return extractor.extract(content=content, source=source, metadata=metadata or {})
+        return extractor.extract(
+            content=content, source=source, metadata=metadata or {}
+        )
     except Exception as exc:
         if settings.llm_provider.lower() != "heuristic":
             logger.warning(
                 "Primary extractor failed (%s); falling back to heuristic parser.", exc
             )
             backup = HeuristicExtractor()
-            return backup.extract(content=content, source=source, metadata=metadata or {})
+            return backup.extract(
+                content=content, source=source, metadata=metadata or {}
+            )
         raise
 
 

@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/finance"
     llm_provider: str = "heuristic"
-    llm_model: str = "gpt-5-mini-2025-08-07" #gpt-5-mini-2025-08-07
+    llm_model: str = "gpt-5-mini-2025-08-07"  # gpt-5-mini-2025-08-07
 
     openai_api_key: Optional[str] = None
     openai_timeout_seconds: int = 120

@@ -19,23 +19,41 @@ async def db_preview(
     events_limit: int = Query(10, ge=1, le=200),
 ):
     statements = (
-        (await session.execute(select(Statement).order_by(Statement.created_at.desc()).limit(limit)))
+        (
+            await session.execute(
+                select(Statement).order_by(Statement.created_at.desc()).limit(limit)
+            )
+        )
         .scalars()
         .all()
     )
     transactions = (
-        (await session.execute(select(Transaction).order_by(Transaction.created_at.desc()).limit(limit)))
+        (
+            await session.execute(
+                select(Transaction).order_by(Transaction.created_at.desc()).limit(limit)
+            )
+        )
         .scalars()
         .all()
     )
     emis = (await session.execute(select(EmiItem).limit(limit))).scalars().all()
     artifacts = (
-        (await session.execute(select(Artifact).order_by(Artifact.created_at.desc()).limit(limit)))
+        (
+            await session.execute(
+                select(Artifact).order_by(Artifact.created_at.desc()).limit(limit)
+            )
+        )
         .scalars()
         .all()
     )
     events = (
-        (await session.execute(select(IngestEvent).order_by(IngestEvent.created_at.desc()).limit(events_limit)))
+        (
+            await session.execute(
+                select(IngestEvent)
+                .order_by(IngestEvent.created_at.desc())
+                .limit(events_limit)
+            )
+        )
         .scalars()
         .all()
     )

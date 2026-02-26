@@ -16,6 +16,7 @@ from ..db import IngestEvent, SessionLocal
 router = APIRouter()
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
+
 class IngestResponse(BaseModel):
     job_id: str
     object_key: str
@@ -23,11 +24,12 @@ class IngestResponse(BaseModel):
     size_bytes: int
     queue_length: int
 
+
 @router.post("/upload", response_model=IngestResponse)
 async def upload_receipt(
     file: UploadFile = File(...),
     source: str = Form("manual"),
-    external_id: Optional[str] = Form(None)
+    external_id: Optional[str] = Form(None),
 ):
     contents = await file.read()
     if not contents:
