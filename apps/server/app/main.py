@@ -25,6 +25,7 @@ S3_REGION = os.getenv("S3_REGION", "us-east-1")
 
 s3_client = None
 
+
 def ensure_bucket():
     global s3_client
     s3_client = boto3.client(
@@ -40,9 +41,9 @@ def ensure_bucket():
         s3_client.create_bucket(Bucket=S3_BUCKET)
         # Optional: enable versioning (safer for receipts)
         s3_client.put_bucket_versioning(
-            Bucket=S3_BUCKET,
-            VersioningConfiguration={"Status": "Enabled"}
+            Bucket=S3_BUCKET, VersioningConfiguration={"Status": "Enabled"}
         )
+
 
 @app.on_event("startup")
 async def on_startup():
@@ -54,20 +55,29 @@ async def on_startup():
         print("[bootstrap] MinIO bootstrap error:", e)
     await init_db()
 
+
 @app.get("/health")
 async def health():
     return {"ok": True, "bucket": S3_BUCKET}
 
-# Mount routers here (transactions, analytics, auth)
-from .routers.ingest import router as ingest_router
-from .routers.transactions import router as tx_router
-from .routers.statements import router as statements_router
-from .routers.ingest_events import router as ingest_events_router
-from .routers.schema import router as schema_router
-from .routers.debug import router as debug_router
-app.include_router(ingest_router, prefix="/v1/ingest", tags=["ingestion"])
-app.include_router(tx_router, prefix="/v1/transactions", tags=["transactions"])
-app.include_router(statements_router, prefix="/v1/statements", tags=["statements"])
-app.include_router(ingest_events_router, prefix="/v1/ingest-events", tags=["ingest-events"])
-app.include_router(schema_router, prefix="/v1/schema", tags=["schema"])
-app.include_router(debug_router, prefix="/v1/debug", tags=["debug"])
+
+def _include_routers() -> None:
+    # Imported lazily to avoid circular imports with routers that reference app.main.
+    from .routers.debug import router as debug_router
+    from .routers.ingest import router as ingest_router
+    from .routers.ingest_events import router as ingest_events_router
+    from .routers.schema import router as schema_router
+    from .routers.statements import router as statements_router
+    from .routers.transactions import router as tx_router
+
+    app.include_router(ingest_router, prefix="/v1/ingest", tags=["ingestion"])
+    app.include_router(tx_router, prefix="/v1/transactions", tags=["transactions"])
+    app.include_router(statements_router, prefix="/v1/statements", tags=["statements"])
+    app.include_router(
+        ingest_events_router, prefix="/v1/ingest-events", tags=["ingest-events"]
+    )
+    app.include_router(schema_router, prefix="/v1/schema", tags=["schema"])
+    app.include_router(debug_router, prefix="/v1/debug", tags=["debug"])
+
+
+_include_routers()

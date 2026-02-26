@@ -16,7 +16,10 @@ export function CategoryTransactionsModal({
 }: CategoryTransactionsModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal category-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal category-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <div>
             <h3>{category}</h3>
@@ -28,7 +31,9 @@ export function CategoryTransactionsModal({
         </div>
         <div className="modal-body">
           {loading && <p className="empty">Loading transactions…</p>}
-          {!loading && !transactions.length && <p className="empty">No transactions found.</p>}
+          {!loading && !transactions.length && (
+            <p className="empty">No transactions found.</p>
+          )}
           {!loading && transactions.length > 0 && (
             <div className="rows">
               {transactions.map((tx) => (
@@ -46,11 +51,17 @@ export function CategoryTransactionsModal({
                   </div>
                   <div className="row-item">
                     <span>Amount</span>
-                    <strong>{formatMoney({ value: tx.amount, currency: tx.currency })}</strong>
+                    <strong>
+                      {formatMoney({ value: tx.amount, currency: tx.currency })}
+                    </strong>
                   </div>
                   <div className="row-item">
                     <span>Card</span>
-                    <strong>{tx.statement_instrument || tx.statement_issuer || "Unknown card"}</strong>
+                    <strong>
+                      {tx.statement_instrument ||
+                        tx.statement_issuer ||
+                        "Unknown card"}
+                    </strong>
                   </div>
                 </div>
               ))}

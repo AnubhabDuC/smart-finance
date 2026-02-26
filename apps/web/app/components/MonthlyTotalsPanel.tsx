@@ -6,7 +6,10 @@ type MonthlyTotalsPanelProps = {
   statementRange: string;
 };
 
-export function MonthlyTotalsPanel({ monthly, statementRange }: MonthlyTotalsPanelProps) {
+export function MonthlyTotalsPanel({
+  monthly,
+  statementRange,
+}: MonthlyTotalsPanelProps) {
   return (
     <section className="panel">
       <div className="panel-header">

@@ -28,7 +28,10 @@ export function IngestionDetailModal({
 }: IngestionDetailModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal ingest-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal ingest-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <div>
             <h3>Ingestion details</h3>
@@ -70,11 +73,15 @@ export function IngestionDetailModal({
                   <p>
                     Statement date{" "}
                     {detail.statement.statement_date
-                      ? new Date(detail.statement.statement_date).toLocaleDateString("en-US")
+                      ? new Date(
+                          detail.statement.statement_date,
+                        ).toLocaleDateString("en-US")
                       : "—"}{" "}
                     · Due{" "}
                     {detail.statement.due_date
-                      ? new Date(detail.statement.due_date).toLocaleDateString("en-US")
+                      ? new Date(detail.statement.due_date).toLocaleDateString(
+                          "en-US",
+                        )
                       : "—"}
                   </p>
                 </div>
@@ -82,7 +89,9 @@ export function IngestionDetailModal({
               <div className="detail-block">
                 <h4>Transactions</h4>
                 {!detail.transactions.length && (
-                  <p className="empty">No transactions saved for this ingestion.</p>
+                  <p className="empty">
+                    No transactions saved for this ingestion.
+                  </p>
                 )}
                 {detail.transactions.length > 0 && (
                   <div className="rows">
@@ -126,7 +135,11 @@ export function IngestionDetailModal({
                 )}
               </div>
               <div className="detail-actions">
-                <button className="danger" disabled={rollbackLoading} onClick={onRollbackAll}>
+                <button
+                  className="danger"
+                  disabled={rollbackLoading}
+                  onClick={onRollbackAll}
+                >
                   Rollback ingestion
                 </button>
                 <button
@@ -136,11 +149,15 @@ export function IngestionDetailModal({
                 >
                   Rollback selected
                 </button>
-                {rollbackError && <span className="error-text">{rollbackError}</span>}
+                {rollbackError && (
+                  <span className="error-text">{rollbackError}</span>
+                )}
               </div>
             </>
           )}
-          {!loading && !detail && <p className="empty">No details found for this ingestion.</p>}
+          {!loading && !detail && (
+            <p className="empty">No details found for this ingestion.</p>
+          )}
         </div>
       </div>
     </div>

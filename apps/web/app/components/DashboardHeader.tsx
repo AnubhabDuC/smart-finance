@@ -39,8 +39,8 @@ export function DashboardHeader({
         <p className="kicker">Finance Intelligence Dashboard</p>
         <h1>Statements, spend, and signals in one view.</h1>
         <p className="subtitle">
-          Powered by your ingestion pipeline. Filter by issuer to slice statement insights,
-          monthly totals, and category intelligence.
+          Powered by your ingestion pipeline. Filter by issuer to slice
+          statement insights, monthly totals, and category intelligence.
         </p>
       </div>
       <div className="side-stack">
@@ -67,18 +67,28 @@ export function DashboardHeader({
             {loading
               ? "Refreshing…"
               : resolvedIssuer
-              ? `Resolved to: ${resolvedIssuer}`
-              : "Applies to all charts below"}
+                ? `Resolved to: ${resolvedIssuer}`
+                : "Applies to all charts below"}
           </div>
         </div>
         <div className="upload-card">
           <label htmlFor="upload">Manual upload</label>
-          <input id="upload" type="file" accept=".pdf" onChange={handleFileChange} />
-          <div className="hint">{uploading ? "Uploading…" : "PDF statements only"}</div>
+          <input
+            id="upload"
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+          />
+          <div className="hint">
+            {uploading ? "Uploading…" : "PDF statements only"}
+          </div>
           {friendlyStatus && (
             <div className="upload-progress">
               <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${uploadStage}%` }} />
+                <div
+                  className="progress-fill"
+                  style={{ width: `${uploadStage}%` }}
+                />
               </div>
               <span>{friendlyStatus}</span>
             </div>

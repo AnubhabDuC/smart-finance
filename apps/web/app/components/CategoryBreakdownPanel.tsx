@@ -1,6 +1,10 @@
 import { formatMoney, formatMonth } from "../lib/formatters";
 import { describeArc } from "../lib/pie";
-import type { CategorySummaryItem, MonthlyCategories, PieSlice } from "../lib/types";
+import type {
+  CategorySummaryItem,
+  MonthlyCategories,
+  PieSlice,
+} from "../lib/types";
 
 type CategoryBreakdownPanelProps = {
   categories: MonthlyCategories[];
@@ -40,7 +44,13 @@ export function CategoryBreakdownPanel({
               {pieSlices.map((slice) => (
                 <path
                   key={slice.category}
-                  d={describeArc(100, 100, 80, slice.startAngle, slice.endAngle)}
+                  d={describeArc(
+                    100,
+                    100,
+                    80,
+                    slice.startAngle,
+                    slice.endAngle,
+                  )}
                   fill={slice.color}
                   className={`pie-slice ${hoveredCategory === slice.category ? "active" : ""}`}
                   onMouseEnter={() => onHoverCategory(slice.category)}
@@ -62,7 +72,9 @@ export function CategoryBreakdownPanel({
             >
               <span
                 className="legend-swatch"
-                style={{ background: categoryColorMap.get(item.category) || "#ff8a3d" }}
+                style={{
+                  background: categoryColorMap.get(item.category) || "#ff8a3d",
+                }}
               />
               <span className="legend-label">{item.category}</span>
               <span className="legend-value">
@@ -70,7 +82,9 @@ export function CategoryBreakdownPanel({
               </span>
             </button>
           ))}
-          {!categorySummary.length && <p className="empty">No categories yet.</p>}
+          {!categorySummary.length && (
+            <p className="empty">No categories yet.</p>
+          )}
         </div>
       </div>
       <div className="rows">

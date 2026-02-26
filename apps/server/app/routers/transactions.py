@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..db import Statement, Transaction, get_session
+
 router = APIRouter()
 
-from ..db import Statement, Transaction, get_session
 
 class TxIn(BaseModel):
     ts: datetime
@@ -20,6 +21,7 @@ class TxIn(BaseModel):
     source: str
     meta: dict = {}
 
+
 class TxOut(TxIn):
     id: str
     statement_id: Optional[str] = None
@@ -28,6 +30,7 @@ class TxOut(TxIn):
     category_lvl1: Optional[str] = None
     category_lvl2: Optional[str] = None
     confidence: float = 0.0
+
 
 @router.post("", response_model=TxOut)
 async def add_tx(tx: TxIn):
@@ -70,7 +73,10 @@ async def list_transactions(
                 statement_id=tx_row.statement_id,
                 statement_issuer=st_row.issuer if st_row else None,
                 statement_instrument=st_row.instrument if st_row else None,
-                meta={"statement_id": tx_row.statement_id, "object_key": tx_row.object_key},
+                meta={
+                    "statement_id": tx_row.statement_id,
+                    "object_key": tx_row.object_key,
+                },
             )
         )
     return result

@@ -26,26 +26,42 @@ class Statement(Base):
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     issuer: Mapped[str | None] = mapped_column(String(64), nullable=True)
     instrument: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    statement_date: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    due_date: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    period_start: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    period_end: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    statement_date: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    due_date: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    period_start: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    period_end: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     total_due_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_due_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
     minimum_due_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     minimum_due_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
     opening_balance_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    opening_balance_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    opening_balance_currency: Mapped[str | None] = mapped_column(
+        String(8), nullable=True
+    )
     closing_balance_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    closing_balance_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    closing_balance_currency: Mapped[str | None] = mapped_column(
+        String(8), nullable=True
+    )
     total_credits_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_credits_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
     total_debits_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_debits_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
     finance_charges_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    finance_charges_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    finance_charges_currency: Mapped[str | None] = mapped_column(
+        String(8), nullable=True
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="statement")
     emis: Mapped[list["EmiItem"]] = relationship(back_populates="statement")
@@ -75,7 +91,9 @@ class Transaction(Base):
     channel: Mapped[str | None] = mapped_column(String(16), nullable=True)
     location: Mapped[str | None] = mapped_column(String(128), nullable=True)
     reference: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     statement: Mapped["Statement | None"] = relationship(back_populates="transactions")
 
@@ -84,12 +102,18 @@ class EmiItem(Base):
     __tablename__ = "emi_items"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
-    statement_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("statements.id"))
+    statement_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("statements.id")
+    )
     description: Mapped[str | None] = mapped_column(String(256), nullable=True)
     total_amount_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_amount_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
-    monthly_installment_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    monthly_installment_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    monthly_installment_value: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )
+    monthly_installment_currency: Mapped[str | None] = mapped_column(
+        String(8), nullable=True
+    )
     tenure_months: Mapped[int | None] = mapped_column(nullable=True)
     remaining_months: Mapped[int | None] = mapped_column(nullable=True)
 
@@ -105,8 +129,12 @@ class Artifact(Base):
     source: Mapped[str] = mapped_column(String(64))
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="received")
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class IngestEvent(Base):
@@ -118,7 +146,9 @@ class IngestEvent(Base):
     )
     event_type: Mapped[str] = mapped_column(String(32))
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 engine = create_async_engine(settings.database_url, echo=False)
@@ -135,10 +165,7 @@ async def init_db() -> None:
             )
         )
         await conn.execute(
-            text(
-                "ALTER TABLE statements "
-                "ADD COLUMN IF NOT EXISTS artifact_id UUID"
-            )
+            text("ALTER TABLE statements " "ADD COLUMN IF NOT EXISTS artifact_id UUID")
         )
         await conn.execute(
             text(
@@ -160,8 +187,7 @@ async def init_db() -> None:
         )
         await conn.execute(
             text(
-                "ALTER TABLE transactions "
-                "ADD COLUMN IF NOT EXISTS artifact_id UUID"
+                "ALTER TABLE transactions " "ADD COLUMN IF NOT EXISTS artifact_id UUID"
             )
         )
         await conn.execute(

@@ -5,13 +5,18 @@ type IngestionHistoryPanelProps = {
   onSelect: (event: IngestEvent) => void;
 };
 
-export function IngestionHistoryPanel({ events, onSelect }: IngestionHistoryPanelProps) {
+export function IngestionHistoryPanel({
+  events,
+  onSelect,
+}: IngestionHistoryPanelProps) {
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
           <h2>Ingestion history</h2>
-          <span className="subtle">Dedup, reuploads, and processing events</span>
+          <span className="subtle">
+            Dedup, reuploads, and processing events
+          </span>
         </div>
         <span className="pill">Recent 20</span>
       </div>

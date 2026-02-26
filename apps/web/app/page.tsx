@@ -35,7 +35,9 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [monthly, setMonthly] = useState<MonthlyTotals[]>([]);
-  const [creditsDebits, setCreditsDebits] = useState<MonthlyCreditsDebits[]>([]);
+  const [creditsDebits, setCreditsDebits] = useState<MonthlyCreditsDebits[]>(
+    [],
+  );
   const [topMerchants, setTopMerchants] = useState<MonthlyMerchants[]>([]);
   const [categories, setCategories] = useState<MonthlyCategories[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +63,12 @@ export default function Page() {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const statementRange = useMemo(
-    () => formatRange(monthly.map((m) => m.month), "All time"),
-    [monthly]
+    () =>
+      formatRange(
+        monthly.map((m) => m.month),
+        "All time",
+      ),
+    [monthly],
   );
   const transactionRange = useMemo(() => {
     const months = new Set<string>();
@@ -120,7 +126,7 @@ export default function Page() {
   const categoryColorMap = useMemo(() => {
     const map = new Map<string, string>();
     const sorted = [...categorySummary].sort((a, b) =>
-      a.category.localeCompare(b.category)
+      a.category.localeCompare(b.category),
     );
     sorted.forEach((item, idx) => {
       map.set(item.category, piePalette[idx % piePalette.length]);
@@ -152,7 +158,10 @@ export default function Page() {
     return params.toString() ? `?${params.toString()}` : "";
   }, [resolvedIssuer]);
 
-  const fetchDashboardData = async (opts?: { silent?: boolean; isActive?: () => boolean }) => {
+  const fetchDashboardData = async (opts?: {
+    silent?: boolean;
+    isActive?: () => boolean;
+  }) => {
     const canSet = () => (opts?.isActive ? opts.isActive() : true);
     if (!opts?.silent) {
       setLoading(true);
@@ -200,7 +209,7 @@ export default function Page() {
 
   const fetchMonthTransactions = async (
     monthKey: string,
-    opts?: { isActive?: () => boolean }
+    opts?: { isActive?: () => boolean },
   ) => {
     const canSet = () => (opts?.isActive ? opts.isActive() : true);
     const [year, month] = monthKey.split("-");
@@ -229,7 +238,7 @@ export default function Page() {
 
   const fetchCategoryTransactions = async (
     category: string,
-    opts?: { isActive?: () => boolean }
+    opts?: { isActive?: () => boolean },
   ) => {
     const canSet = () => (opts?.isActive ? opts.isActive() : true);
     if (canSet()) setCategoryLoading(true);
@@ -265,13 +274,17 @@ export default function Page() {
     setIngestLoading(true);
     setRollbackError(null);
     try {
-      const res = await fetch(`${API_BASE}/ingest-events/${artifactId}/details`);
+      const res = await fetch(
+        `${API_BASE}/ingest-events/${artifactId}/details`,
+      );
       if (!res.ok) throw new Error("Failed to load ingestion details");
       const json = await res.json();
       setIngestDetail(json);
       setRollbackIds([]);
     } catch (err) {
-      setRollbackError(err instanceof Error ? err.message : "Failed to load details");
+      setRollbackError(
+        err instanceof Error ? err.message : "Failed to load details",
+      );
       setIngestDetail(null);
     } finally {
       setIngestLoading(false);
@@ -288,7 +301,9 @@ export default function Page() {
     if (!relevant.length) return;
     const statuses = relevant
       .map((event) => mapEventToStatus(event.event_type, event.message))
-      .filter((value): value is { stage: number; label: string } => Boolean(value));
+      .filter((value): value is { stage: number; label: string } =>
+        Boolean(value),
+      );
     if (!statuses.length) return;
     const best = statuses.sort((a, b) => b.stage - a.stage)[0];
     setFriendlyStatus(best.label);
@@ -354,7 +369,9 @@ export default function Page() {
       if (!res.ok) throw new Error("Upload failed");
       const json = await res.json();
       setLastObjectKey(json.object_key ?? null);
-      setUploadStatus(`Uploaded. Job ${json.job_id} • Queue ${json.queue_length}`);
+      setUploadStatus(
+        `Uploaded. Job ${json.job_id} • Queue ${json.queue_length}`,
+      );
       setUploadStage(40);
       setFriendlyStatus("Queued for extraction…");
     } catch (err) {
@@ -373,7 +390,9 @@ export default function Page() {
 
   const toggleRollbackId = (txnId: string) => {
     setRollbackIds((prev) =>
-      prev.includes(txnId) ? prev.filter((id) => id !== txnId) : [...prev, txnId]
+      prev.includes(txnId)
+        ? prev.filter((id) => id !== txnId)
+        : [...prev, txnId],
     );
   };
 
@@ -383,11 +402,16 @@ export default function Page() {
     setRollbackLoading(true);
     setRollbackError(null);
     try {
-      const res = await fetch(`${API_BASE}/ingest-events/${selectedIngestId}/rollback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mode === "partial" ? { transaction_ids: rollbackIds } : {}),
-      });
+      const res = await fetch(
+        `${API_BASE}/ingest-events/${selectedIngestId}/rollback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            mode === "partial" ? { transaction_ids: rollbackIds } : {},
+          ),
+        },
+      );
       if (!res.ok) throw new Error("Rollback failed");
       await loadIngestDetail(selectedIngestId);
       await fetchDashboardData({ silent: true });
@@ -440,7 +464,10 @@ export default function Page() {
           selectedMonth={selectedMonth}
           onSelectMonth={setSelectedMonth}
         />
-        <TopMerchantsPanel topMerchants={topMerchants} transactionRange={transactionRange} />
+        <TopMerchantsPanel
+          topMerchants={topMerchants}
+          transactionRange={transactionRange}
+        />
       </section>
 
       <CategoryBreakdownPanel

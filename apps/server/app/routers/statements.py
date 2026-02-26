@@ -155,11 +155,17 @@ async def get_statement_totals(
 
     total_due = _sum_money(rows, "total_due_value", "total_due_currency")
     minimum_due = _sum_money(rows, "minimum_due_value", "minimum_due_currency")
-    opening_balance = _sum_money(rows, "opening_balance_value", "opening_balance_currency")
-    closing_balance = _sum_money(rows, "closing_balance_value", "closing_balance_currency")
+    opening_balance = _sum_money(
+        rows, "opening_balance_value", "opening_balance_currency"
+    )
+    closing_balance = _sum_money(
+        rows, "closing_balance_value", "closing_balance_currency"
+    )
     total_credits = _sum_money(rows, "total_credits_value", "total_credits_currency")
     total_debits = _sum_money(rows, "total_debits_value", "total_debits_currency")
-    finance_charges = _sum_money(rows, "finance_charges_value", "finance_charges_currency")
+    finance_charges = _sum_money(
+        rows, "finance_charges_value", "finance_charges_currency"
+    )
 
     tx_stmt = select(Transaction.statement_id).distinct()
     if issuer:
@@ -176,7 +182,9 @@ async def get_statement_totals(
         tx_stmt = tx_stmt.where(Statement.statement_date <= end)
     tx_statement_ids = (await session.execute(tx_stmt)).scalars().all()
 
-    count_stmt = select(Transaction).where(Transaction.statement_id.in_(tx_statement_ids))
+    count_stmt = select(Transaction).where(
+        Transaction.statement_id.in_(tx_statement_ids)
+    )
     transaction_count = len((await session.execute(count_stmt)).scalars().all())
 
     return TotalsOut(
@@ -234,7 +242,9 @@ async def get_statement_monthly_totals(
         entry["statement_ids"].append(row.id)
         statement_ids.append(row.id)
 
-    tx_stmt = select(Transaction.statement_id).where(Transaction.statement_id.in_(statement_ids))
+    tx_stmt = select(Transaction.statement_id).where(
+        Transaction.statement_id.in_(statement_ids)
+    )
     tx_rows = (await session.execute(tx_stmt)).scalars().all()
     tx_counts = {}
     for statement_id in tx_rows:
@@ -248,10 +258,18 @@ async def get_statement_monthly_totals(
             MonthlyTotalsOut(
                 month=month,
                 total_due=_sum_money(rows, "total_due_value", "total_due_currency"),
-                minimum_due=_sum_money(rows, "minimum_due_value", "minimum_due_currency"),
-                total_credits=_sum_money(rows, "total_credits_value", "total_credits_currency"),
-                total_debits=_sum_money(rows, "total_debits_value", "total_debits_currency"),
-                finance_charges=_sum_money(rows, "finance_charges_value", "finance_charges_currency"),
+                minimum_due=_sum_money(
+                    rows, "minimum_due_value", "minimum_due_currency"
+                ),
+                total_credits=_sum_money(
+                    rows, "total_credits_value", "total_credits_currency"
+                ),
+                total_debits=_sum_money(
+                    rows, "total_debits_value", "total_debits_currency"
+                ),
+                finance_charges=_sum_money(
+                    rows, "finance_charges_value", "finance_charges_currency"
+                ),
                 statement_count=len(rows),
                 transaction_count=sum(tx_counts.get(sid, 0) for sid in statement_ids),
             )
@@ -319,7 +337,9 @@ async def get_transaction_monthly_totals(
     return results
 
 
-@router.get("/summary/credits-debits-by-month", response_model=list[MonthlyCreditDebitOut])
+@router.get(
+    "/summary/credits-debits-by-month", response_model=list[MonthlyCreditDebitOut]
+)
 async def get_monthly_credits_debits(
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
@@ -378,7 +398,9 @@ async def get_monthly_credits_debits(
     return results
 
 
-@router.get("/summary/top-merchants-by-month", response_model=list[MonthlyTopMerchantsOut])
+@router.get(
+    "/summary/top-merchants-by-month", response_model=list[MonthlyTopMerchantsOut]
+)
 async def get_top_merchants_by_month(
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
@@ -443,7 +465,9 @@ async def get_top_merchants_by_month(
     return results
 
 
-@router.get("/summary/categories-by-month", response_model=list[MonthlyCategoryBreakdownOut])
+@router.get(
+    "/summary/categories-by-month", response_model=list[MonthlyCategoryBreakdownOut]
+)
 async def get_categories_by_month(
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
@@ -492,7 +516,9 @@ async def get_categories_by_month(
                 transaction_count=stats["count"],
             )
             for name, stats in sorted(
-                data["categories"].items(), key=lambda item: item[1]["total"], reverse=True
+                data["categories"].items(),
+                key=lambda item: item[1]["total"],
+                reverse=True,
             )
         ]
         results.append(MonthlyCategoryBreakdownOut(month=month, categories=categories))

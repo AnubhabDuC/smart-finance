@@ -27,6 +27,7 @@ from ..db import (
 
 QUEUE_KEY = "ingest:queue"
 
+
 async def process_job(payload: dict, s3_client, bucket: str):
     key = payload["object_key"]
     try:
@@ -99,17 +100,39 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
                 total_due_value=stmt.total_due.value if stmt.total_due else None,
                 total_due_currency=stmt.total_due.currency if stmt.total_due else None,
                 minimum_due_value=stmt.minimum_due.value if stmt.minimum_due else None,
-                minimum_due_currency=stmt.minimum_due.currency if stmt.minimum_due else None,
-                opening_balance_value=stmt.opening_balance.value if stmt.opening_balance else None,
-                opening_balance_currency=stmt.opening_balance.currency if stmt.opening_balance else None,
-                closing_balance_value=stmt.closing_balance.value if stmt.closing_balance else None,
-                closing_balance_currency=stmt.closing_balance.currency if stmt.closing_balance else None,
-                total_credits_value=stmt.total_credits.value if stmt.total_credits else None,
-                total_credits_currency=stmt.total_credits.currency if stmt.total_credits else None,
-                total_debits_value=stmt.total_debits.value if stmt.total_debits else None,
-                total_debits_currency=stmt.total_debits.currency if stmt.total_debits else None,
-                finance_charges_value=stmt.finance_charges.value if stmt.finance_charges else None,
-                finance_charges_currency=stmt.finance_charges.currency if stmt.finance_charges else None,
+                minimum_due_currency=(
+                    stmt.minimum_due.currency if stmt.minimum_due else None
+                ),
+                opening_balance_value=(
+                    stmt.opening_balance.value if stmt.opening_balance else None
+                ),
+                opening_balance_currency=(
+                    stmt.opening_balance.currency if stmt.opening_balance else None
+                ),
+                closing_balance_value=(
+                    stmt.closing_balance.value if stmt.closing_balance else None
+                ),
+                closing_balance_currency=(
+                    stmt.closing_balance.currency if stmt.closing_balance else None
+                ),
+                total_credits_value=(
+                    stmt.total_credits.value if stmt.total_credits else None
+                ),
+                total_credits_currency=(
+                    stmt.total_credits.currency if stmt.total_credits else None
+                ),
+                total_debits_value=(
+                    stmt.total_debits.value if stmt.total_debits else None
+                ),
+                total_debits_currency=(
+                    stmt.total_debits.currency if stmt.total_debits else None
+                ),
+                finance_charges_value=(
+                    stmt.finance_charges.value if stmt.finance_charges else None
+                ),
+                finance_charges_currency=(
+                    stmt.finance_charges.currency if stmt.finance_charges else None
+                ),
                 notes=extraction.notes,
             )
             session.add(statement)
@@ -120,14 +143,22 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
                         id=str(uuid4()),
                         statement_id=statement_id,
                         description=item.description,
-                        total_amount_value=item.total_amount.value if item.total_amount else None,
-                        total_amount_currency=item.total_amount.currency if item.total_amount else None,
-                        monthly_installment_value=item.monthly_installment.value
-                        if item.monthly_installment
-                        else None,
-                        monthly_installment_currency=item.monthly_installment.currency
-                        if item.monthly_installment
-                        else None,
+                        total_amount_value=(
+                            item.total_amount.value if item.total_amount else None
+                        ),
+                        total_amount_currency=(
+                            item.total_amount.currency if item.total_amount else None
+                        ),
+                        monthly_installment_value=(
+                            item.monthly_installment.value
+                            if item.monthly_installment
+                            else None
+                        ),
+                        monthly_installment_currency=(
+                            item.monthly_installment.currency
+                            if item.monthly_installment
+                            else None
+                        ),
                         tenure_months=item.tenure_months,
                         remaining_months=item.remaining_months,
                     )
@@ -176,6 +207,7 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
             f"transactions={len(extraction.txns)} emis={len(extraction.statement.emi_items) if extraction.statement else 0}",
         )
         await session.commit()
+
 
 async def worker_loop():
     await init_db()
@@ -253,12 +285,20 @@ async def _handle_reupload(session, artifact_id: str) -> None:
     existing_txn = (await session.execute(stmt)).scalars().first()
     if not existing_txn:
         return
-    await session.execute(delete(EmiItem).where(EmiItem.statement_id.in_(
-        select(Statement.id).where(Statement.artifact_id == artifact_id)
-    )))
-    await session.execute(delete(Transaction).where(Transaction.artifact_id == artifact_id))
+    await session.execute(
+        delete(EmiItem).where(
+            EmiItem.statement_id.in_(
+                select(Statement.id).where(Statement.artifact_id == artifact_id)
+            )
+        )
+    )
+    await session.execute(
+        delete(Transaction).where(Transaction.artifact_id == artifact_id)
+    )
     await session.execute(delete(Statement).where(Statement.artifact_id == artifact_id))
-    await _log_event(session, artifact_id, "reupload_reset", "Cleared existing data for reupload")
+    await _log_event(
+        session, artifact_id, "reupload_reset", "Cleared existing data for reupload"
+    )
 
 
 def _hash_txn(ts: str, amount: float, currency: str, merchant: str) -> str:
@@ -272,7 +312,9 @@ async def _is_duplicate(session, txn_hash: str) -> bool:
     return bool(exists)
 
 
-async def _log_event(session, artifact_id: str | None, event_type: str, message: str) -> None:
+async def _log_event(
+    session, artifact_id: str | None, event_type: str, message: str
+) -> None:
     session.add(
         IngestEvent(
             id=str(uuid4()),
@@ -282,7 +324,9 @@ async def _log_event(session, artifact_id: str | None, event_type: str, message:
         )
     )
 
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
+
     load_dotenv()
     asyncio.run(worker_loop())

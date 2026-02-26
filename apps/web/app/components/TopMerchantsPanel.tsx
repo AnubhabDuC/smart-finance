@@ -6,7 +6,10 @@ type TopMerchantsPanelProps = {
   transactionRange: string;
 };
 
-export function TopMerchantsPanel({ topMerchants, transactionRange }: TopMerchantsPanelProps) {
+export function TopMerchantsPanel({
+  topMerchants,
+  transactionRange,
+}: TopMerchantsPanelProps) {
   return (
     <div>
       <div className="panel-header">

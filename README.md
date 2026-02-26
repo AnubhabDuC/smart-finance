@@ -168,4 +168,3 @@ pytest
 
 - OCR is not yet implemented (planned later).
 - If LLM extraction fails or times out, it falls back to heuristic parsing.
-

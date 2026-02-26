@@ -19,7 +19,9 @@ export function CreditActivityPanel({
       <div className="panel-header">
         <div>
           <h2>Credit card activity</h2>
-          <span className="subtle">Credits & debits · statement transactions</span>
+          <span className="subtle">
+            Credits & debits · statement transactions
+          </span>
         </div>
         <span className="pill">{transactionRange}</span>
       </div>
@@ -46,7 +48,9 @@ export function CreditActivityPanel({
             </div>
           </div>
         ))}
-        {!creditsDebits.length && <p className="empty">No transaction totals yet.</p>}
+        {!creditsDebits.length && (
+          <p className="empty">No transaction totals yet.</p>
+        )}
       </div>
     </div>
   );

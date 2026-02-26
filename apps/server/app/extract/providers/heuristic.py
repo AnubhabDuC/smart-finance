@@ -14,7 +14,13 @@ from datetime import datetime, timezone
 from typing import Dict, Optional
 
 from ..schema import Extracted, Merchant, Money, Txn
-from ..utils import classify_statement_pages, extract_pdf_pages_text, extract_pdf_text, is_pdf, split_statement_sections
+from ..utils import (
+    classify_statement_pages,
+    extract_pdf_pages_text,
+    extract_pdf_text,
+    is_pdf,
+    split_statement_sections,
+)
 from .base import BaseExtractor
 
 
@@ -59,7 +65,8 @@ def _safe_decode(content: bytes) -> str:
         pages = extract_pdf_pages_text(content)
         sections = split_statement_sections(pages)
         combined = "\n\n".join(
-            part for part in [
+            part
+            for part in [
                 sections.get("summary", ""),
                 sections.get("transactions", ""),
                 sections.get("emi", ""),

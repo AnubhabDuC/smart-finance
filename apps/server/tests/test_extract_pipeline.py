@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.extract.pipeline import parse_document
+from app.extract.pipeline import parse_document  # noqa: E402
 
 
 def test_parse_document_basic_email():
@@ -28,6 +28,4 @@ def test_parse_document_basic_email():
     assert txn.amount.value == 1234.56
     assert txn.channel == "ECOM"
     assert txn.merchant.normalized == "SUPERMART"
-    assert txn.timestamp_iso.date() == datetime(
-        2024, 1, 15, tzinfo=timezone.utc
-    ).date()
+    assert txn.timestamp_iso.date() == datetime(2024, 1, 15, tzinfo=timezone.utc).date()

@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Iterable, Optional
 
 try:
     from openai import OpenAI
-except ImportError as exc:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     OpenAI = None
 
 try:  # pragma: no cover - optional dependency
@@ -29,7 +29,9 @@ from .base import BaseExtractor
 
 
 class OpenAIExtractor(BaseExtractor):
-    def __init__(self, *, api_key: str, model: str, timeout_seconds: int, max_retries: int):
+    def __init__(
+        self, *, api_key: str, model: str, timeout_seconds: int, max_retries: int
+    ):
         if OpenAI is None:
             raise RuntimeError(
                 "The openai package is required for the OpenAI provider. "
@@ -70,7 +72,9 @@ class OpenAIExtractor(BaseExtractor):
         return Extracted.model_validate(merged)
 
 
-def _prepare_sections(content: bytes, metadata: Dict[str, str]) -> list[tuple[str, list[str]]]:
+def _prepare_sections(
+    content: bytes, metadata: Dict[str, str]
+) -> list[tuple[str, list[str]]]:
     name = metadata.get("filename", "document")
     source_hint = metadata.get("source_hint", "unknown")
     if is_pdf(content):
@@ -80,12 +84,33 @@ def _prepare_sections(content: bytes, metadata: Dict[str, str]) -> list[tuple[st
         txn_blocks = _chunk_page_blocks(sections["transactions"])
         emi_blocks = _format_page_blocks(sections["emi"])
         return [
-            ("summary", [f"{_doc_header(name, source_hint)}\nSTATEMENT SUMMARY:\n{summary_blocks}"] if summary_blocks else []),
-            ("transactions", [
-                f"{_doc_header(name, source_hint)}\nTRANSACTIONS:\n{block}"
-                for block in txn_blocks
-            ]),
-            ("emi", [f"{_doc_header(name, source_hint)}\nEMI / LOAN SECTION:\n{emi_blocks}"] if emi_blocks else []),
+            (
+                "summary",
+                (
+                    [
+                        f"{_doc_header(name, source_hint)}\nSTATEMENT SUMMARY:\n{summary_blocks}"
+                    ]
+                    if summary_blocks
+                    else []
+                ),
+            ),
+            (
+                "transactions",
+                [
+                    f"{_doc_header(name, source_hint)}\nTRANSACTIONS:\n{block}"
+                    for block in txn_blocks
+                ],
+            ),
+            (
+                "emi",
+                (
+                    [
+                        f"{_doc_header(name, source_hint)}\nEMI / LOAN SECTION:\n{emi_blocks}"
+                    ]
+                    if emi_blocks
+                    else []
+                ),
+            ),
         ]
     else:
         try:
@@ -239,7 +264,14 @@ def _merge_extracts(extracts: Iterable[dict]) -> dict:
     seen = set()
     statement = {}
     for extract in extracts:
-        for key in ("doc_type", "issuer", "instrument", "confidence", "notes", "schema_version"):
+        for key in (
+            "doc_type",
+            "issuer",
+            "instrument",
+            "confidence",
+            "notes",
+            "schema_version",
+        ):
             if key in extract and extract.get(key) is not None:
                 merged.setdefault(key, extract[key])
         for txn in extract.get("txns", []):
@@ -259,7 +291,9 @@ def _merge_extracts(extracts: Iterable[dict]) -> dict:
         chunk_statement = extract.get("statement") or {}
         if chunk_statement:
             if "emi_items" in chunk_statement:
-                statement.setdefault("emi_items", []).extend(chunk_statement["emi_items"])
+                statement.setdefault("emi_items", []).extend(
+                    chunk_statement["emi_items"]
+                )
             for field, value in chunk_statement.items():
                 if field == "emi_items":
                     continue
@@ -304,7 +338,11 @@ def _normalize_txn(txn: dict, statement: dict) -> Optional[dict]:
         if fallback:
             normalized["timestamp_iso"] = fallback
 
-    if "timestamp_iso" not in normalized or "amount" not in normalized or "type" not in normalized:
+    if (
+        "timestamp_iso" not in normalized
+        or "amount" not in normalized
+        or "type" not in normalized
+    ):
         return None
     return normalized
 
@@ -323,7 +361,9 @@ def _filter_txns_by_period(data: dict) -> dict:
     filtered = []
     for txn in data.get("txns", []):
         try:
-            ts = datetime.fromisoformat(str(txn.get("timestamp_iso")).replace("Z", "+00:00"))
+            ts = datetime.fromisoformat(
+                str(txn.get("timestamp_iso")).replace("Z", "+00:00")
+            )
         except Exception:
             continue
         if start_dt <= ts <= end_dt:

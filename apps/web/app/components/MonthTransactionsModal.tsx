@@ -28,7 +28,9 @@ export function MonthTransactionsModal({
         </div>
         <div className="modal-body">
           {loading && <p className="empty">Loading transactions…</p>}
-          {!loading && !transactions.length && <p className="empty">No transactions found.</p>}
+          {!loading && !transactions.length && (
+            <p className="empty">No transactions found.</p>
+          )}
           {!loading && transactions.length > 0 && (
             <div className="rows">
               {transactions.map((tx) => (
@@ -46,11 +48,17 @@ export function MonthTransactionsModal({
                   </div>
                   <div className="row-item">
                     <span>Amount</span>
-                    <strong>{formatMoney({ value: tx.amount, currency: tx.currency })}</strong>
+                    <strong>
+                      {formatMoney({ value: tx.amount, currency: tx.currency })}
+                    </strong>
                   </div>
                   <div className="row-item">
                     <span>Card</span>
-                    <strong>{tx.statement_instrument || tx.statement_issuer || "Unknown card"}</strong>
+                    <strong>
+                      {tx.statement_instrument ||
+                        tx.statement_issuer ||
+                        "Unknown card"}
+                    </strong>
                   </div>
                 </div>
               ))}

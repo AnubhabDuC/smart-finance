@@ -251,9 +251,7 @@ async def rollback_ingest(
         await session.commit()
         return {"status": "partial", "transactions_deleted": result.rowcount or 0}
 
-    stmt_ids = (
-        select(Statement.id).where(Statement.artifact_id == artifact_id)
-    )
+    stmt_ids = select(Statement.id).where(Statement.artifact_id == artifact_id)
     statement_ids = [row[0] for row in (await session.execute(stmt_ids)).all()]
     if statement_ids:
         await session.execute(
@@ -266,9 +264,7 @@ async def rollback_ingest(
         delete(Statement).where(Statement.artifact_id == artifact_id)
     )
     await session.execute(
-        update(Artifact)
-        .where(Artifact.id == artifact_id)
-        .values(status="rolled_back")
+        update(Artifact).where(Artifact.id == artifact_id).values(status="rolled_back")
     )
     session.add(
         IngestEvent(

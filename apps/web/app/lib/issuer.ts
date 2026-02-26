@@ -3,7 +3,10 @@ export function resolveIssuer(input: string): string {
   if (!value) return "";
 
   const rules: Array<{ canonical: string; aliases: string[] }> = [
-    { canonical: "American Express Banking", aliases: ["amex", "american express", "americanexpress"] },
+    {
+      canonical: "American Express Banking",
+      aliases: ["amex", "american express", "americanexpress"],
+    },
     { canonical: "ICICI Bank", aliases: ["icici", "icic"] },
     { canonical: "HDFC Bank", aliases: ["hdfc"] },
     { canonical: "SBI", aliases: ["sbi", "state bank"] },
