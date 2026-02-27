@@ -1,44 +1,92 @@
 # Smart Finance (Finance Agent MVP)
 
-End-to-end ingestion + extraction pipeline for financial statements, with a FastAPI backend, a Redis-based worker, and a Next.js dashboard. The system supports manual PDF uploads, dedup/reupload correction, statement summaries, and analytics views for credit card activity.
+End-to-end ingestion and extraction pipeline for financial statements:
 
-## What this project does
-
-1. Manual PDF upload (UI or API).
-2. File stored in S3/MinIO.
-3. Redis queue triggers the ingestion worker.
-4. Worker extracts statement summary + transactions + EMI items.
-5. Results are persisted to Postgres.
-6. Dashboard reads from API and renders summaries, charts, and history.
+1. Upload statement PDF (UI or API).
+2. Store original file in MinIO (S3-compatible).
+3. Push ingestion job to Redis queue.
+4. Worker extracts statement summary, transactions, and EMI items.
+5. Persist normalized data in Postgres.
+6. Render analytics in a Next.js dashboard.
 
 ## Monorepo layout
 
-- `apps/server` - FastAPI server, ingestion worker, extraction pipeline, DB models.
-- `apps/web` - Next.js frontend (dashboard UI).
-- `infra` - Docker Compose for Postgres, Redis, MinIO.
-- `packages/python` - Shared python package placeholder.
+- `apps/server` - FastAPI API, worker, extract pipeline, DB models.
+- `apps/web` - Next.js dashboard UI.
+- `infra` - Docker Compose stack (Postgres, Redis, MinIO).
+- `packages/python` - placeholder shared package.
 
-## Quick start
+## Prerequisites
+
+- Docker Desktop (with `docker compose`)
+- Python `3.11` (recommended for current pinned dependencies)
+- Node.js `18+` and npm
+- Git
+
+## Environment setup
+
+Example env files are committed and should be copied locally.
+
+### macOS / Linux
+
+```bash
+cp infra/.env.example infra/.env
+cp apps/server/.env.example apps/server/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+### Windows (Git Bash)
+
+```bash
+cp infra/.env.example infra/.env
+cp apps/server/.env.example apps/server/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+If copy fails because files do not exist in your local clone, pull latest changes from GitHub first.
+
+## Start the project
 
 ### 1) Start infra services
 
+From repo root:
+
 ```bash
 docker compose -f infra/docker-compose.yml up -d
+docker compose -f infra/docker-compose.yml ps
 ```
 
-### 2) Backend (FastAPI)
+### 2) Start backend API (FastAPI)
+
+#### macOS / Linux
 
 ```bash
 cd apps/server
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 set -a && source .env && set +a
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
-### 3) Worker
+#### Windows (Git Bash)
+
+```bash
+cd apps/server
+py -3.11 -m venv .venv
+source .venv/Scripts/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+set -a && source .env && set +a
+python -m uvicorn app.main:app --reload
+```
+
+### 3) Start ingestion worker
+
+Open a second terminal:
+
+#### macOS / Linux
 
 ```bash
 cd apps/server
@@ -47,68 +95,70 @@ set -a && source .env && set +a
 python -m app.workers.ingest_worker
 ```
 
-### 4) Frontend
+#### Windows (Git Bash)
+
+```bash
+cd apps/server
+source .venv/Scripts/activate
+set -a && source .env && set +a
+python -m app.workers.ingest_worker
+```
+
+### 4) Start frontend (Next.js)
+
+Open a third terminal:
 
 ```bash
 cd apps/web
 npm install
-npm run dev
+npm run dev -- -p 3000
 ```
 
-If port 3000 is already in use, Next.js will pick 3001. To force 3000:
+Open `http://localhost:3000`.
+
+## Quick verification
+
+- API health:
 
 ```bash
-PORT=3000 npm run dev
+curl http://127.0.0.1:8000/health
 ```
 
-## Environment variables
+- Upload sample file:
 
-Backend example: `apps/server/.env.example`
-
-```
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/finance
-REDIS_URL=redis://localhost:6379/0
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=financeadmin
-S3_SECRET_KEY=changeMeNow_2024
-S3_BUCKET=finance-raw
-S3_REGION=us-east-1
-LLM_PROVIDER=heuristic
-LLM_MODEL=gpt-4o-mini
-OPENAI_API_KEY=
-OPENAI_TIMEOUT_SECONDS=120
-OPENAI_MAX_RETRIES=2
+```bash
+curl -X POST http://127.0.0.1:8000/v1/ingest/upload \
+  -F "file=@apps/server/tests/sample1.pdf" \
+  -F "source=manual" \
+  -F "external_id=test-sample-1"
 ```
 
-Frontend example: `apps/web/.env.example`
+- Check ingestion events:
 
+```bash
+curl "http://127.0.0.1:8000/v1/ingest-events?limit=20"
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
 
-Note: the current UI uses a hardcoded `API_BASE` in `apps/web/app/page.tsx`. If you want to use `NEXT_PUBLIC_API_URL`, update the UI to read the env var.
-
-## API overview
-
-Core endpoints:
+## Key API endpoints
 
 - `GET /health`
-- `POST /v1/ingest/upload` (multipart form: `file`, `source`, `external_id`)
-- `GET /v1/statements`
+- `POST /v1/ingest/upload`
 - `GET /v1/transactions`
-- `GET /v1/statements/summary/*`
+- `GET /v1/statements`
+- `GET /v1/statements/summary/totals`
+- `GET /v1/statements/summary/by-month`
+- `GET /v1/statements/summary/credits-debits-by-month`
+- `GET /v1/statements/summary/top-merchants-by-month`
+- `GET /v1/statements/summary/categories-by-month`
 - `GET /v1/ingest-events`
 - `GET /v1/ingest-events/{artifact_id}/details`
 - `POST /v1/ingest-events/{artifact_id}/rollback`
+- `GET /v1/schema`
+- `GET /v1/debug/db-preview`
 
-Debug/testing:
+## Database tables
 
-- `GET /v1/schema` - JSON schema snapshot from SQLAlchemy models.
-- `GET /v1/debug/db-preview` - Sample rows from key tables.
-
-## Database schema
-
-Source of truth lives in `apps/server/app/db.py`:
+Defined in `apps/server/app/db.py`:
 
 - `statements`
 - `transactions`
@@ -116,55 +166,59 @@ Source of truth lives in `apps/server/app/db.py`:
 - `artifacts`
 - `ingest_events`
 
-The schema is auto-created on app startup via `init_db()`.
-
-### Query the DB via psql
+Inspect quickly:
 
 ```bash
 docker compose -f infra/docker-compose.yml exec db psql -U postgres -d finance
 ```
 
-Inside psql:
+Then in `psql`:
 
 ```sql
 \dt
 SELECT * FROM statements LIMIT 5;
 SELECT * FROM transactions LIMIT 5;
+SELECT * FROM emi_items LIMIT 5;
+SELECT * FROM artifacts LIMIT 5;
+SELECT * FROM ingest_events ORDER BY created_at DESC LIMIT 10;
 ```
 
-## Extraction pipeline
+## Extraction behavior
 
-- Default is **heuristic** extraction.
-- Optional **LLM** extraction (OpenAI/Anthropic) controlled by `LLM_PROVIDER`.
-- The worker auto-dedups transactions using a hash and logs `dedup_skip`.
-- Reuploads clear the prior statement/transactions for that artifact and log `reupload_reset`.
+- Default provider: `LLM_PROVIDER=heuristic`
+- Optional LLM provider: `openai`
+- On LLM timeout or model failure, worker falls back to heuristic extraction
+- Reupload flow clears prior artifact-linked rows and records history events
+- Dedup logic skips duplicate transactions and logs skip events
 
-## Frontend overview
+## Common setup issues
 
-The UI is currently built in a single file for speed of iteration:
+- `ModuleNotFoundError: redis` or `boto3`
 
-- `apps/web/app/page.tsx` - main dashboard (manual upload, ingestion history, summaries, charts, modals).
-- `apps/web/app/layout.tsx` - root layout wrapper.
+  - Ensure `python -m pip install -r apps/server/requirements.txt` completed successfully.
 
-As the project matures, this should be split into components, hooks, and styles.
+- `Address already in use` (port 8000 / 3000)
 
-## Sample data
+  - Stop the old process or choose a different port.
 
-Sample PDFs live in:
+- Windows `npm` errors (`EPERM` / `'next' is not recognized`)
 
-- `apps/server/tests/sample1.pdf`
-- `apps/server/tests/sample2.pdf`
+  - Remove `apps/web/node_modules`, reinstall with `npm install`, run `npm run dev -- -p 3000`.
 
-## Testing
+- Python 3.14 install failures for pinned packages
+  - Use Python 3.11 for now.
 
-Backend tests (optional):
+## Development quality checks
+
+From repo root:
 
 ```bash
-cd apps/server
-pytest
+pre-commit run --all-files
 ```
 
-## Notes
+If hooks auto-fix files, run it again, then commit:
 
-- OCR is not yet implemented (planned later).
-- If LLM extraction fails or times out, it falls back to heuristic parsing.
+```bash
+git add -A
+git commit -m "fix(ci): apply pre-commit fixes"
+```
