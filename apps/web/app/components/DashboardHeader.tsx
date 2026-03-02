@@ -13,6 +13,10 @@ type DashboardHeaderProps = {
   uploadStage: number;
   friendlyStatus: string | null;
   onUpload: (file: File | null) => void;
+  resetting: boolean;
+  resetStatus: string | null;
+  resetError: string | null;
+  onResetAll: () => void;
 };
 
 export function DashboardHeader({
@@ -28,6 +32,10 @@ export function DashboardHeader({
   uploadStage,
   friendlyStatus,
   onUpload,
+  resetting,
+  resetStatus,
+  resetError,
+  onResetAll,
 }: DashboardHeaderProps) {
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     onUpload(event.target.files?.[0] || null);
@@ -95,6 +103,21 @@ export function DashboardHeader({
           )}
           {uploadStatus && <div className="upload-status">{uploadStatus}</div>}
           {uploadError && <div className="upload-error">{uploadError}</div>}
+          <div className="reset-action">
+            <button
+              type="button"
+              className="reset-button"
+              onClick={onResetAll}
+              disabled={resetting || uploading}
+            >
+              {resetting ? "Resetting…" : "Reset all data"}
+            </button>
+            <span className="reset-note">
+              Deletes DB, queue, files, and history
+            </span>
+          </div>
+          {resetStatus && <div className="reset-status">{resetStatus}</div>}
+          {resetError && <div className="upload-error">{resetError}</div>}
         </div>
       </div>
     </header>
