@@ -60,29 +60,22 @@ def _purge_bucket_objects() -> tuple[int, int]:
 
     list_current = client.get_paginator("list_objects_v2")
     for page in list_current.paginate(Bucket=S3_BUCKET):
-        keys = [{"Key": item["Key"]} for item in page.get("Contents", [])]
-        if keys:
-            client.delete_objects(
-                Bucket=S3_BUCKET, Delete={"Objects": keys, "Quiet": True}
-            )
-            current_deleted += len(keys)
+        for item in page.get("Contents", []):
+            client.delete_object(Bucket=S3_BUCKET, Key=item["Key"])
+            current_deleted += 1
 
     list_versions = client.get_paginator("list_object_versions")
     for page in list_versions.paginate(Bucket=S3_BUCKET):
-        version_items = [
-            {"Key": item["Key"], "VersionId": item["VersionId"]}
-            for item in page.get("Versions", [])
-        ]
-        marker_items = [
-            {"Key": item["Key"], "VersionId": item["VersionId"]}
-            for item in page.get("DeleteMarkers", [])
-        ]
-        to_delete = [*version_items, *marker_items]
-        if to_delete:
-            client.delete_objects(
-                Bucket=S3_BUCKET, Delete={"Objects": to_delete, "Quiet": True}
+        for item in page.get("Versions", []):
+            client.delete_object(
+                Bucket=S3_BUCKET, Key=item["Key"], VersionId=item["VersionId"]
             )
-            versioned_deleted += len(to_delete)
+            versioned_deleted += 1
+        for item in page.get("DeleteMarkers", []):
+            client.delete_object(
+                Bucket=S3_BUCKET, Key=item["Key"], VersionId=item["VersionId"]
+            )
+            versioned_deleted += 1
 
     return (current_deleted, versioned_deleted)
 
