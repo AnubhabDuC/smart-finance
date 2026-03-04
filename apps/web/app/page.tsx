@@ -49,6 +49,9 @@ export default function Page() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState(0);
   const [friendlyStatus, setFriendlyStatus] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetStatus, setResetStatus] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
   const [events, setEvents] = useState<IngestEvent[]>([]);
   const [lastObjectKey, setLastObjectKey] = useState<string | null>(null);
   const [selectedIngestId, setSelectedIngestId] = useState<string | null>(null);
@@ -382,6 +385,62 @@ export default function Page() {
     }
   };
 
+  const handleResetAll = async () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "This will permanently delete all statements, transactions, EMIs, uploads, and ingestion history. Continue?",
+      );
+      if (!confirmed) return;
+    }
+
+    setResetting(true);
+    setResetStatus(null);
+    setResetError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/debug/reset-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm_text: "DELETE_EVERYTHING" }),
+      });
+      let json: { detail?: string; warnings?: string[] } | null = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+      if (!res.ok) {
+        throw new Error(json?.detail || `Reset failed (${res.status})`);
+      }
+
+      const warnings =
+        Array.isArray(json?.warnings) && json.warnings.length
+          ? ` (warnings: ${json.warnings.join(" | ")})`
+          : "";
+      setResetStatus(`All data deleted${warnings}`);
+
+      setUploadStatus(null);
+      setUploadError(null);
+      setUploadStage(0);
+      setFriendlyStatus(null);
+      setLastObjectKey(null);
+      setSelectedMonth(null);
+      setMonthTransactions([]);
+      setSelectedCategory(null);
+      setCategoryTransactions([]);
+      setSelectedIngestId(null);
+      setIngestDetail(null);
+      setRollbackIds([]);
+      setRollbackError(null);
+      setEvents([]);
+      await fetchDashboardData({ silent: true });
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleIngestClick = (event: IngestEvent) => {
     if (!event.artifact_id) return;
     setSelectedIngestId(event.artifact_id);
@@ -445,6 +504,10 @@ export default function Page() {
         uploadStage={uploadStage}
         friendlyStatus={friendlyStatus}
         onUpload={handleUpload}
+        resetting={resetting}
+        resetStatus={resetStatus}
+        resetError={resetError}
+        onResetAll={handleResetAll}
       />
 
       {error && (
