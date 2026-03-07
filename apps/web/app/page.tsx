@@ -53,7 +53,9 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [monthly, setMonthly] = useState<MonthlyTotals[]>([]);
-  const [creditsDebits, setCreditsDebits] = useState<MonthlyCreditsDebits[]>([]);
+  const [creditsDebits, setCreditsDebits] = useState<MonthlyCreditsDebits[]>(
+    [],
+  );
   const [topMerchants, setTopMerchants] = useState<MonthlyMerchants[]>([]);
   const [categories, setCategories] = useState<MonthlyCategories[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +220,9 @@ export default function Page() {
         categoriesJson,
         eventsJson,
       ] = await Promise.all([
-        apiJson<Totals>(`/statements/summary/totals${query}`, { token: authToken }),
+        apiJson<Totals>(`/statements/summary/totals${query}`, {
+          token: authToken,
+        }),
         apiJson<MonthlyTotals[]>(`/statements/summary/by-month${query}`, {
           token: authToken,
         }),
@@ -276,9 +280,12 @@ export default function Page() {
     if (resolvedIssuer) params.set("issuer", resolvedIssuer);
 
     try {
-      const json = await apiJson<TxRow[]>(`/transactions?${params.toString()}`, {
-        token: authToken,
-      });
+      const json = await apiJson<TxRow[]>(
+        `/transactions?${params.toString()}`,
+        {
+          token: authToken,
+        },
+      );
       if (canSet()) setMonthTransactions(json);
     } catch (err) {
       if (canSet()) {
@@ -304,9 +311,12 @@ export default function Page() {
     params.set("category", category);
 
     try {
-      const json = await apiJson<TxRow[]>(`/transactions?${params.toString()}`, {
-        token: authToken,
-      });
+      const json = await apiJson<TxRow[]>(
+        `/transactions?${params.toString()}`,
+        {
+          token: authToken,
+        },
+      );
       if (canSet()) setCategoryTransactions(json);
     } catch (err) {
       if (canSet()) {
@@ -548,7 +558,9 @@ export default function Page() {
 
       const json = await res.json();
       setLastObjectKey(json.object_key ?? null);
-      setUploadStatus(`Uploaded. Job ${json.job_id} • Queue ${json.queue_length}`);
+      setUploadStatus(
+        `Uploaded. Job ${json.job_id} • Queue ${json.queue_length}`,
+      );
       setUploadStage(40);
       setFriendlyStatus("Queued for extraction…");
     } catch (err) {
@@ -623,7 +635,9 @@ export default function Page() {
 
   const toggleRollbackId = (txnId: string) => {
     setRollbackIds((prev) =>
-      prev.includes(txnId) ? prev.filter((id) => id !== txnId) : [...prev, txnId],
+      prev.includes(txnId)
+        ? prev.filter((id) => id !== txnId)
+        : [...prev, txnId],
     );
   };
 
@@ -734,7 +748,10 @@ export default function Page() {
 
           <IngestionHistoryPanel events={events} onSelect={handleIngestClick} />
           <SummaryGrid totals={totals} />
-          <MonthlyTotalsPanel monthly={monthly} statementRange={statementRange} />
+          <MonthlyTotalsPanel
+            monthly={monthly}
+            statementRange={statementRange}
+          />
 
           <section className="panel split">
             <CreditActivityPanel

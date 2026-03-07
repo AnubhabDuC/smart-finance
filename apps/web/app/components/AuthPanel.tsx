@@ -192,7 +192,9 @@ export function AuthPanel({
         <input
           id="auth-password"
           type="password"
-          autoComplete={mode === "register" ? "new-password" : "current-password"}
+          autoComplete={
+            mode === "register" ? "new-password" : "current-password"
+          }
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           minLength={8}

@@ -38,10 +38,7 @@ def hash_password(password: str) -> str:
         salt,
         PASSWORD_ITERATIONS,
     )
-    return (
-        f"{PASSWORD_SCHEME}${PASSWORD_ITERATIONS}$"
-        f"{salt.hex()}${digest.hex()}"
-    )
+    return f"{PASSWORD_SCHEME}${PASSWORD_ITERATIONS}$" f"{salt.hex()}${digest.hex()}"
 
 
 def verify_password(password: str, password_hash: str) -> bool:

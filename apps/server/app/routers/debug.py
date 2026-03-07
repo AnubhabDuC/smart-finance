@@ -66,7 +66,9 @@ async def _load_db_preview_data(
     events_limit: int,
     user_id: str | None,
 ) -> dict:
-    statement_stmt = select(Statement).order_by(Statement.created_at.desc()).limit(limit)
+    statement_stmt = (
+        select(Statement).order_by(Statement.created_at.desc()).limit(limit)
+    )
     transaction_stmt = (
         select(Transaction).order_by(Transaction.created_at.desc()).limit(limit)
     )

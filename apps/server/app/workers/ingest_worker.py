@@ -297,9 +297,7 @@ async def _get_or_create_artifact(
     return artifact
 
 
-async def _handle_reupload(
-    session, artifact_id: str, user_id: str | None
-) -> None:
+async def _handle_reupload(session, artifact_id: str, user_id: str | None) -> None:
     stmt = select(Transaction).where(Transaction.artifact_id == artifact_id)
     if user_id:
         stmt = stmt.where(Transaction.user_id == user_id)
@@ -342,9 +340,7 @@ def _hash_txn(ts: str, amount: float, currency: str, merchant: str) -> str:
     return hashlib.sha256(base.encode("utf-8")).hexdigest()
 
 
-async def _is_duplicate(
-    session, user_id: str | None, txn_hash: str
-) -> bool:
+async def _is_duplicate(session, user_id: str | None, txn_hash: str) -> bool:
     stmt = select(Transaction.id).where(
         Transaction.transaction_hash == txn_hash, Transaction.user_id == user_id
     )
