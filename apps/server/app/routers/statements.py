@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import EmiItem, Statement, Transaction, get_session
+from ..auth import get_current_user
+from ..db import EmiItem, Statement, Transaction, User, get_session
 
 router = APIRouter()
 
@@ -103,8 +104,17 @@ class MonthlyCategoryBreakdownOut(BaseModel):
     categories: list[CategoryTotalOut]
 
 
+def _statement_scope(user_id: str):
+    return select(Statement).where(Statement.user_id == user_id)
+
+
+def _transaction_scope(user_id: str):
+    return select(Transaction).where(Transaction.user_id == user_id)
+
+
 @router.get("", response_model=list[StatementOut])
 async def list_statements(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -112,7 +122,7 @@ async def list_statements(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Statement)
+    stmt = _statement_scope(current_user.id)
     if issuer:
         pattern = f"%{issuer}%"
         stmt = stmt.where(
@@ -132,12 +142,13 @@ async def list_statements(
 
 @router.get("/summary/totals", response_model=TotalsOut)
 async def get_statement_totals(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Statement)
+    stmt = _statement_scope(current_user.id)
     if issuer:
         pattern = f"%{issuer}%"
         stmt = stmt.where(
@@ -167,9 +178,15 @@ async def get_statement_totals(
         rows, "finance_charges_value", "finance_charges_currency"
     )
 
-    tx_stmt = select(Transaction.statement_id).distinct()
+    tx_stmt = (
+        select(Transaction.id)
+        .join(Statement, Statement.id == Transaction.statement_id)
+        .where(
+            Transaction.user_id == current_user.id,
+            Statement.user_id == current_user.id,
+        )
+    )
     if issuer:
-        tx_stmt = tx_stmt.join(Statement, Statement.id == Transaction.statement_id)
         tx_stmt = tx_stmt.where(
             or_(
                 Statement.issuer.ilike(pattern),
@@ -180,12 +197,7 @@ async def get_statement_totals(
         tx_stmt = tx_stmt.where(Statement.statement_date >= start)
     if end:
         tx_stmt = tx_stmt.where(Statement.statement_date <= end)
-    tx_statement_ids = (await session.execute(tx_stmt)).scalars().all()
-
-    count_stmt = select(Transaction).where(
-        Transaction.statement_id.in_(tx_statement_ids)
-    )
-    transaction_count = len((await session.execute(count_stmt)).scalars().all())
+    transaction_count = len((await session.execute(tx_stmt)).scalars().all())
 
     return TotalsOut(
         total_due=total_due,
@@ -202,12 +214,13 @@ async def get_statement_totals(
 
 @router.get("/summary/by-month", response_model=list[MonthlyTotalsOut])
 async def get_statement_monthly_totals(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Statement)
+    stmt = _statement_scope(current_user.id)
     if issuer:
         pattern = f"%{issuer}%"
         stmt = stmt.where(
@@ -279,12 +292,13 @@ async def get_statement_monthly_totals(
 
 @router.get("/summary/by-transaction-month", response_model=list[MonthlyTotalsOut])
 async def get_transaction_monthly_totals(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Transaction)
+    stmt = _transaction_scope(current_user.id)
     if issuer or start or end:
         stmt = stmt.join(Statement, Statement.id == Transaction.statement_id)
         if issuer:
@@ -341,12 +355,13 @@ async def get_transaction_monthly_totals(
     "/summary/credits-debits-by-month", response_model=list[MonthlyCreditDebitOut]
 )
 async def get_monthly_credits_debits(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Transaction)
+    stmt = _transaction_scope(current_user.id)
     if issuer or start or end:
         stmt = stmt.join(Statement, Statement.id == Transaction.statement_id)
         if issuer:
@@ -402,13 +417,14 @@ async def get_monthly_credits_debits(
     "/summary/top-merchants-by-month", response_model=list[MonthlyTopMerchantsOut]
 )
 async def get_top_merchants_by_month(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     limit: int = Query(5, ge=1, le=25),
 ):
-    stmt = select(Transaction)
+    stmt = _transaction_scope(current_user.id)
     if issuer or start or end:
         stmt = stmt.join(Statement, Statement.id == Transaction.statement_id)
         if issuer:
@@ -469,12 +485,13 @@ async def get_top_merchants_by_month(
     "/summary/categories-by-month", response_model=list[MonthlyCategoryBreakdownOut]
 )
 async def get_categories_by_month(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     issuer: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ):
-    stmt = select(Transaction)
+    stmt = _transaction_scope(current_user.id)
     if issuer or start or end:
         stmt = stmt.join(Statement, Statement.id == Transaction.statement_id)
         if issuer:
@@ -528,9 +545,13 @@ async def get_categories_by_month(
 @router.get("/{statement_id}", response_model=StatementDetail)
 async def get_statement(
     statement_id: str,
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    stmt = select(Statement).where(Statement.id == statement_id)
+    stmt = select(Statement).where(
+        Statement.id == statement_id,
+        Statement.user_id == current_user.id,
+    )
     row = (await session.execute(stmt)).scalars().first()
     if not row:
         raise HTTPException(status_code=404, detail="Statement not found")
@@ -538,7 +559,10 @@ async def get_statement(
     em_stmt = select(EmiItem).where(EmiItem.statement_id == statement_id)
     emi_rows = (await session.execute(em_stmt)).scalars().all()
 
-    tx_stmt = select(Transaction).where(Transaction.statement_id == statement_id)
+    tx_stmt = select(Transaction).where(
+        Transaction.statement_id == statement_id,
+        Transaction.user_id == current_user.id,
+    )
     tx_rows = (await session.execute(tx_stmt)).scalars().all()
 
     detail = StatementDetail(**_statement_to_out(row).model_dump())

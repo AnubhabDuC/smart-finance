@@ -1,7 +1,7 @@
 import json
 import hashlib
 from datetime import datetime, timezone
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from uuid import uuid4
 from typing import Optional
@@ -9,9 +9,10 @@ from pathlib import Path
 from botocore.exceptions import ClientError
 import redis.asyncio as redis
 from .. import main as app_main
+from ..auth import get_current_user
 from ..main import S3_BUCKET
 from ..settings import settings
-from ..db import IngestEvent, SessionLocal
+from ..db import IngestEvent, SessionLocal, User
 
 router = APIRouter()
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
@@ -27,6 +28,7 @@ class IngestResponse(BaseModel):
 
 @router.post("/upload", response_model=IngestResponse)
 async def upload_receipt(
+    current_user: User = Depends(get_current_user),
     file: UploadFile = File(...),
     source: str = Form("manual"),
     external_id: Optional[str] = Form(None),
@@ -59,6 +61,7 @@ async def upload_receipt(
 
     job_payload = {
         "job_id": job_id,
+        "user_id": current_user.id,
         "object_key": object_key,
         "source": source,
         "external_id": external_id,
@@ -77,6 +80,7 @@ async def upload_receipt(
                 IngestEvent(
                     id=str(uuid4()),
                     artifact_id=None,
+                    user_id=current_user.id,
                     event_type="ingest_enqueued",
                     message=f"object_key={object_key} source={source}",
                 )
