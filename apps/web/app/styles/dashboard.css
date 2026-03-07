@@ -103,6 +103,194 @@ h1 {
   display: grid;
   gap: 16px;
 }
+.session-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(16, 20, 35, 0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.page.dark .session-card {
+  background: linear-gradient(140deg, rgba(6, 6, 8, 0.75) 0%, rgba(6, 6, 8, 0.45) 40%, #c84628 70%, #ff8a3d 100%);
+  border-color: rgba(255, 154, 87, 0.5);
+}
+.session-copy {
+  display: grid;
+  gap: 2px;
+}
+.session-copy span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6f86;
+}
+.session-copy strong {
+  font-size: 13px;
+  color: #202438;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page.dark .session-copy span,
+.page.dark .session-copy strong {
+  color: #f7e6d6;
+}
+.logout-button {
+  border: 1px solid rgba(255, 122, 47, 0.35);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff6ef 0%, #ffe5d2 100%);
+  color: #8f1d10;
+  cursor: pointer;
+}
+.page.dark .logout-button {
+  background: rgba(9, 10, 14, 0.5);
+  border-color: rgba(255, 138, 61, 0.6);
+  color: #ffddb9;
+}
+.auth-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 146, 68, 0.2);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 20px 45px rgba(14, 12, 10, 0.14);
+  display: grid;
+  gap: 14px;
+}
+.auth-card.dark {
+  background: linear-gradient(145deg, #0b0c12 0%, #171a24 100%);
+  border-color: rgba(255, 138, 61, 0.35);
+  box-shadow: 0 24px 48px rgba(4, 5, 9, 0.55);
+}
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.auth-tabs button {
+  border: 1px solid rgba(108, 118, 150, 0.3);
+  border-radius: 10px;
+  background: #f9f1eb;
+  color: #34384f;
+  padding: 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.auth-card.dark .auth-tabs button {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 184, 132, 0.28);
+  color: #f6e2cf;
+}
+.auth-tabs button.active {
+  border-color: rgba(255, 122, 47, 0.55);
+  background: linear-gradient(135deg, #fff0e1 0%, #ffd7bc 100%);
+  color: #7f2d0f;
+}
+.auth-card.dark .auth-tabs button.active {
+  background: linear-gradient(140deg, rgba(200, 70, 40, 0.9) 0%, rgba(255, 138, 61, 0.95) 100%);
+  color: #1a0f08;
+}
+.auth-form {
+  display: grid;
+  gap: 8px;
+}
+.auth-form label {
+  font-size: 12px;
+  color: #5a6078;
+}
+.auth-card.dark .auth-form label {
+  color: #d3c1af;
+}
+.auth-form input {
+  border: 1px solid #d0d6eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+.auth-card.dark .auth-form input {
+  background: #15171f;
+  border-color: #2b2f3c;
+  color: #fff8f1;
+}
+.auth-submit {
+  margin-top: 6px;
+  border: 1px solid rgba(255, 122, 47, 0.4);
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ff7a2f, #ffb677);
+  color: #24140a;
+  cursor: pointer;
+}
+.auth-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.auth-error {
+  font-size: 12px;
+  color: #b42318;
+}
+.auth-card.dark .auth-error {
+  color: #ffb6a9;
+}
+.auth-oauth {
+  display: grid;
+  gap: 10px;
+}
+.auth-oauth-divider {
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.auth-oauth-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid rgba(89, 102, 145, 0.26);
+}
+.auth-oauth-divider span {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #5a6078;
+}
+.auth-card.dark .auth-oauth-divider::before {
+  border-top-color: rgba(255, 184, 132, 0.3);
+}
+.auth-card.dark .auth-oauth-divider span {
+  background: #121520;
+  color: #d3c1af;
+}
+.google-signin-wrapper {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+.auth-loading {
+  padding: 18px;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
 .theme-toggle {
   background: #ffffff;
   padding: 14px 18px;

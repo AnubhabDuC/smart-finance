@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import Statement, Transaction, get_session
+from ..auth import get_current_user
+from ..db import Statement, Transaction, User, get_session
 
 router = APIRouter()
 
@@ -33,13 +34,18 @@ class TxOut(TxIn):
 
 
 @router.post("", response_model=TxOut)
-async def add_tx(tx: TxIn):
+async def add_tx(
+    tx: TxIn,
+    current_user: User = Depends(get_current_user),
+):
     # TODO: insert into DB, categorize, return normalized row
+    _ = current_user
     return TxOut(id="demo-1", **tx.model_dump())
 
 
 @router.get("", response_model=list[TxOut])
 async def list_transactions(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -50,6 +56,7 @@ async def list_transactions(
     stmt = select(Transaction, Statement).outerjoin(
         Statement, Statement.id == Transaction.statement_id
     )
+    stmt = stmt.where(Transaction.user_id == current_user.id)
     if start:
         stmt = stmt.where(Transaction.ts >= start)
     if end:

@@ -17,6 +17,9 @@ type DashboardHeaderProps = {
   resetStatus: string | null;
   resetError: string | null;
   onResetAll: () => void;
+  userEmail: string;
+  userName: string | null;
+  onLogout: () => void;
 };
 
 export function DashboardHeader({
@@ -36,6 +39,9 @@ export function DashboardHeader({
   resetStatus,
   resetError,
   onResetAll,
+  userEmail,
+  userName,
+  onLogout,
 }: DashboardHeaderProps) {
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     onUpload(event.target.files?.[0] || null);
@@ -52,6 +58,15 @@ export function DashboardHeader({
         </p>
       </div>
       <div className="side-stack">
+        <div className="session-card">
+          <div className="session-copy">
+            <span>Signed in</span>
+            <strong>{userName || userEmail}</strong>
+          </div>
+          <button type="button" className="logout-button" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
         <div className="theme-toggle">
           <span>Theme</span>
           <button

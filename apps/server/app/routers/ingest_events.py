@@ -7,7 +7,16 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import Artifact, EmiItem, IngestEvent, Statement, Transaction, get_session
+from ..auth import get_current_user
+from ..db import (
+    Artifact,
+    EmiItem,
+    IngestEvent,
+    Statement,
+    Transaction,
+    User,
+    get_session,
+)
 
 router = APIRouter()
 
@@ -81,12 +90,14 @@ class RollbackRequest(BaseModel):
 
 @router.get("", response_model=list[IngestEventOut])
 async def list_ingest_events(
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     limit: int = Query(25, ge=1, le=200),
 ):
     stmt = (
         select(IngestEvent, Artifact)
         .outerjoin(Artifact, Artifact.id == IngestEvent.artifact_id)
+        .where(IngestEvent.user_id == current_user.id)
         .order_by(IngestEvent.created_at.desc())
         .limit(limit)
     )
@@ -110,19 +121,27 @@ async def list_ingest_events(
 @router.get("/{artifact_id}/details", response_model=IngestDetailOut)
 async def ingest_details(
     artifact_id: str,
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    artifact_stmt = select(Artifact).where(Artifact.id == artifact_id)
+    artifact_stmt = select(Artifact).where(
+        Artifact.id == artifact_id, Artifact.user_id == current_user.id
+    )
     artifact = (await session.execute(artifact_stmt)).scalars().first()
     if not artifact:
         raise HTTPException(status_code=404, detail="Ingestion not found")
 
-    statement_stmt = select(Statement).where(Statement.artifact_id == artifact_id)
+    statement_stmt = select(Statement).where(
+        Statement.artifact_id == artifact_id, Statement.user_id == current_user.id
+    )
     statement = (await session.execute(statement_stmt)).scalars().first()
 
     txn_stmt = (
         select(Transaction)
-        .where(Transaction.artifact_id == artifact_id)
+        .where(
+            Transaction.artifact_id == artifact_id,
+            Transaction.user_id == current_user.id,
+        )
         .order_by(Transaction.ts.asc())
     )
     transactions = (await session.execute(txn_stmt)).scalars().all()
@@ -130,7 +149,10 @@ async def ingest_details(
     emi_stmt = (
         select(EmiItem)
         .join(Statement, EmiItem.statement_id == Statement.id)
-        .where(Statement.artifact_id == artifact_id)
+        .where(
+            Statement.artifact_id == artifact_id,
+            Statement.user_id == current_user.id,
+        )
     )
     emi_items = (await session.execute(emi_stmt)).scalars().all()
 
@@ -139,6 +161,7 @@ async def ingest_details(
         .select_from(IngestEvent)
         .where(
             IngestEvent.artifact_id == artifact_id,
+            IngestEvent.user_id == current_user.id,
             IngestEvent.event_type == "dedup_skip",
         )
     )
@@ -146,7 +169,10 @@ async def ingest_details(
 
     events_stmt = (
         select(IngestEvent)
-        .where(IngestEvent.artifact_id == artifact_id)
+        .where(
+            IngestEvent.artifact_id == artifact_id,
+            IngestEvent.user_id == current_user.id,
+        )
         .order_by(IngestEvent.created_at.desc())
         .limit(100)
     )
@@ -226,9 +252,12 @@ async def ingest_details(
 async def rollback_ingest(
     artifact_id: str,
     payload: RollbackRequest,
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    artifact_stmt = select(Artifact).where(Artifact.id == artifact_id)
+    artifact_stmt = select(Artifact).where(
+        Artifact.id == artifact_id, Artifact.user_id == current_user.id
+    )
     artifact = (await session.execute(artifact_stmt)).scalars().first()
     if not artifact:
         raise HTTPException(status_code=404, detail="Ingestion not found")
@@ -237,6 +266,7 @@ async def rollback_ingest(
         delete_stmt = (
             delete(Transaction)
             .where(Transaction.artifact_id == artifact_id)
+            .where(Transaction.user_id == current_user.id)
             .where(Transaction.id.in_(payload.transaction_ids))
         )
         result = await session.execute(delete_stmt)
@@ -244,6 +274,7 @@ async def rollback_ingest(
             IngestEvent(
                 id=str(uuid4()),
                 artifact_id=artifact_id,
+                user_id=current_user.id,
                 event_type="ingest_partial_rollback",
                 message=f"transactions_deleted={result.rowcount or 0}",
             )
@@ -251,17 +282,24 @@ async def rollback_ingest(
         await session.commit()
         return {"status": "partial", "transactions_deleted": result.rowcount or 0}
 
-    stmt_ids = select(Statement.id).where(Statement.artifact_id == artifact_id)
+    stmt_ids = select(Statement.id).where(
+        Statement.artifact_id == artifact_id, Statement.user_id == current_user.id
+    )
     statement_ids = [row[0] for row in (await session.execute(stmt_ids)).all()]
     if statement_ids:
         await session.execute(
             delete(EmiItem).where(EmiItem.statement_id.in_(statement_ids))
         )
     txn_result = await session.execute(
-        delete(Transaction).where(Transaction.artifact_id == artifact_id)
+        delete(Transaction).where(
+            Transaction.artifact_id == artifact_id,
+            Transaction.user_id == current_user.id,
+        )
     )
     stmt_result = await session.execute(
-        delete(Statement).where(Statement.artifact_id == artifact_id)
+        delete(Statement).where(
+            Statement.artifact_id == artifact_id, Statement.user_id == current_user.id
+        )
     )
     await session.execute(
         update(Artifact).where(Artifact.id == artifact_id).values(status="rolled_back")
@@ -270,6 +308,7 @@ async def rollback_ingest(
         IngestEvent(
             id=str(uuid4()),
             artifact_id=artifact_id,
+            user_id=current_user.id,
             event_type="ingest_rollback",
             message="Rolled back ingestion data",
         )

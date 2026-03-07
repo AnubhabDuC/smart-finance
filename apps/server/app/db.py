@@ -13,10 +13,25 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(512))
+    full_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Statement(Base):
     __tablename__ = "statements"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("users.id"), nullable=True
+    )
     account_type: Mapped[str] = mapped_column(String(32), default="credit_card")
     artifact_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("artifacts.id"), nullable=True
@@ -71,6 +86,9 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("users.id"), nullable=True
+    )
     statement_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("statements.id"), nullable=True
     )
@@ -124,7 +142,10 @@ class Artifact(Base):
     __tablename__ = "artifacts"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
-    file_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    user_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("users.id"), nullable=True
+    )
+    file_hash: Mapped[str] = mapped_column(String(128))
     object_key: Mapped[str] = mapped_column(String(512))
     source: Mapped[str] = mapped_column(String(64))
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -141,6 +162,9 @@ class IngestEvent(Base):
     __tablename__ = "ingest_events"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("users.id"), nullable=True
+    )
     artifact_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False), ForeignKey("artifacts.id"), nullable=True
     )
@@ -161,11 +185,15 @@ async def init_db() -> None:
         await conn.execute(
             text(
                 "ALTER TABLE statements "
-                "ADD COLUMN IF NOT EXISTS account_type VARCHAR(32) DEFAULT 'credit_card'"
+                "ADD COLUMN IF NOT EXISTS account_type "
+                "VARCHAR(32) DEFAULT 'credit_card'"
             )
         )
         await conn.execute(
             text("ALTER TABLE statements " "ADD COLUMN IF NOT EXISTS artifact_id UUID")
+        )
+        await conn.execute(
+            text("ALTER TABLE statements " "ADD COLUMN IF NOT EXISTS user_id UUID")
         )
         await conn.execute(
             text(
@@ -182,7 +210,8 @@ async def init_db() -> None:
         await conn.execute(
             text(
                 "ALTER TABLE transactions "
-                "ADD COLUMN IF NOT EXISTS account_type VARCHAR(32) DEFAULT 'credit_card'"
+                "ADD COLUMN IF NOT EXISTS account_type "
+                "VARCHAR(32) DEFAULT 'credit_card'"
             )
         )
         await conn.execute(
@@ -197,9 +226,60 @@ async def init_db() -> None:
             )
         )
         await conn.execute(
+            text("ALTER TABLE transactions " "ADD COLUMN IF NOT EXISTS user_id UUID")
+        )
+        await conn.execute(
+            text("ALTER TABLE artifacts " "ADD COLUMN IF NOT EXISTS user_id UUID")
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE artifacts "
+                "DROP CONSTRAINT IF EXISTS artifacts_file_hash_key"
+            )
+        )
+        await conn.execute(
+            text("ALTER TABLE ingest_events " "ADD COLUMN IF NOT EXISTS user_id UUID")
+        )
+        await conn.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS idx_transactions_hash "
                 "ON transactions (transaction_hash)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_transactions_user_hash "
+                "ON transactions (user_id, transaction_hash)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_statements_user_id "
+                "ON statements (user_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_transactions_user_id "
+                "ON transactions (user_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_artifacts_user_id "
+                "ON artifacts (user_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_artifacts_user_file_hash "
+                "ON artifacts (user_id, file_hash)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_ingest_events_user_id "
+                "ON ingest_events (user_id)"
             )
         )
         await conn.execute(

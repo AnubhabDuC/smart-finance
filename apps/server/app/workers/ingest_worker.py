@@ -70,22 +70,25 @@ async def process_job(payload: dict, s3_client, bucket: str):
 
 
 async def _persist_extraction(payload: dict, extraction, file_hash: str):
+    user_id = payload.get("user_id")
     statement_id = None
     async with SessionLocal() as session:
-        artifact = await _get_or_create_artifact(session, payload, file_hash)
+        artifact = await _get_or_create_artifact(session, payload, file_hash, user_id)
         await _log_event(
             session,
             artifact.id,
+            user_id,
             "ingest_received",
             f"source={payload.get('source')} object_key={payload.get('object_key')}",
         )
-        await _handle_reupload(session, artifact.id)
+        await _handle_reupload(session, artifact.id, user_id)
 
         if extraction.statement:
             statement_id = str(uuid4())
             stmt = extraction.statement
             statement = Statement(
                 id=statement_id,
+                user_id=user_id,
                 account_type="credit_card",
                 artifact_id=artifact.id,
                 source=payload.get("source", "manual"),
@@ -171,10 +174,11 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
                 txn.amount.currency,
                 txn.merchant.normalized or txn.merchant.raw or "",
             )
-            if await _is_duplicate(session, txn_hash):
+            if await _is_duplicate(session, user_id, txn_hash):
                 await _log_event(
                     session,
                     artifact.id,
+                    user_id,
                     "dedup_skip",
                     f"txn_hash={txn_hash}",
                 )
@@ -182,6 +186,7 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
             session.add(
                 Transaction(
                     id=str(uuid4()),
+                    user_id=user_id,
                     statement_id=statement_id,
                     account_type="credit_card",
                     artifact_id=artifact.id,
@@ -203,8 +208,13 @@ async def _persist_extraction(payload: dict, extraction, file_hash: str):
         await _log_event(
             session,
             artifact.id,
+            user_id,
             "ingest_complete",
-            f"transactions={len(extraction.txns)} emis={len(extraction.statement.emi_items) if extraction.statement else 0}",
+            (
+                f"transactions={len(extraction.txns)} "
+                "emis="
+                f"{len(extraction.statement.emi_items) if extraction.statement else 0}"
+            ),
         )
         await session.commit()
 
@@ -259,8 +269,14 @@ def _fmt_dt(dt) -> str:
     return dt.isoformat()
 
 
-async def _get_or_create_artifact(session, payload: dict, file_hash: str) -> Artifact:
+async def _get_or_create_artifact(
+    session, payload: dict, file_hash: str, user_id: str | None
+) -> Artifact:
     stmt = select(Artifact).where(Artifact.file_hash == file_hash)
+    if user_id:
+        stmt = stmt.where(Artifact.user_id == user_id)
+    else:
+        stmt = stmt.where(Artifact.user_id.is_(None))
     existing = (await session.execute(stmt)).scalars().first()
     if existing:
         existing.object_key = payload["object_key"]
@@ -270,6 +286,7 @@ async def _get_or_create_artifact(session, payload: dict, file_hash: str) -> Art
         return existing
     artifact = Artifact(
         id=str(uuid4()),
+        user_id=user_id,
         file_hash=file_hash,
         object_key=payload["object_key"],
         source=payload.get("source", "manual"),
@@ -280,24 +297,41 @@ async def _get_or_create_artifact(session, payload: dict, file_hash: str) -> Art
     return artifact
 
 
-async def _handle_reupload(session, artifact_id: str) -> None:
+async def _handle_reupload(session, artifact_id: str, user_id: str | None) -> None:
     stmt = select(Transaction).where(Transaction.artifact_id == artifact_id)
+    if user_id:
+        stmt = stmt.where(Transaction.user_id == user_id)
+    else:
+        stmt = stmt.where(Transaction.user_id.is_(None))
     existing_txn = (await session.execute(stmt)).scalars().first()
     if not existing_txn:
         return
     await session.execute(
         delete(EmiItem).where(
             EmiItem.statement_id.in_(
-                select(Statement.id).where(Statement.artifact_id == artifact_id)
+                select(Statement.id).where(
+                    Statement.artifact_id == artifact_id,
+                    Statement.user_id == user_id,
+                )
             )
         )
     )
     await session.execute(
-        delete(Transaction).where(Transaction.artifact_id == artifact_id)
+        delete(Transaction).where(
+            Transaction.artifact_id == artifact_id, Transaction.user_id == user_id
+        )
     )
-    await session.execute(delete(Statement).where(Statement.artifact_id == artifact_id))
+    await session.execute(
+        delete(Statement).where(
+            Statement.artifact_id == artifact_id, Statement.user_id == user_id
+        )
+    )
     await _log_event(
-        session, artifact_id, "reupload_reset", "Cleared existing data for reupload"
+        session,
+        artifact_id,
+        user_id,
+        "reupload_reset",
+        "Cleared existing data for reupload",
     )
 
 
@@ -306,19 +340,26 @@ def _hash_txn(ts: str, amount: float, currency: str, merchant: str) -> str:
     return hashlib.sha256(base.encode("utf-8")).hexdigest()
 
 
-async def _is_duplicate(session, txn_hash: str) -> bool:
-    stmt = select(Transaction.id).where(Transaction.transaction_hash == txn_hash)
+async def _is_duplicate(session, user_id: str | None, txn_hash: str) -> bool:
+    stmt = select(Transaction.id).where(
+        Transaction.transaction_hash == txn_hash, Transaction.user_id == user_id
+    )
     exists = (await session.execute(stmt)).scalars().first()
     return bool(exists)
 
 
 async def _log_event(
-    session, artifact_id: str | None, event_type: str, message: str
+    session,
+    artifact_id: str | None,
+    user_id: str | None,
+    event_type: str,
+    message: str,
 ) -> None:
     session.add(
         IngestEvent(
             id=str(uuid4()),
             artifact_id=artifact_id,
+            user_id=user_id,
             event_type=event_type,
             message=message,
         )

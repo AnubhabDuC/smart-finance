@@ -63,6 +63,7 @@ async def health():
 
 def _include_routers() -> None:
     # Imported lazily to avoid circular imports with routers that reference app.main.
+    from .routers.auth import router as auth_router
     from .routers.debug import router as debug_router
     from .routers.ingest import router as ingest_router
     from .routers.ingest_events import router as ingest_events_router
@@ -70,6 +71,7 @@ def _include_routers() -> None:
     from .routers.statements import router as statements_router
     from .routers.transactions import router as tx_router
 
+    app.include_router(auth_router, prefix="/v1/auth", tags=["auth"])
     app.include_router(ingest_router, prefix="/v1/ingest", tags=["ingestion"])
     app.include_router(tx_router, prefix="/v1/transactions", tags=["transactions"])
     app.include_router(statements_router, prefix="/v1/statements", tags=["statements"])
