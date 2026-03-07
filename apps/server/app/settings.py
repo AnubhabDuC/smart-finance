@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     openai_timeout_seconds: int = 120
     openai_max_retries: int = 2
     anthropic_api_key: Optional[str] = None
+    auth_secret_key: str = "dev-insecure-change-me"
+    auth_token_ttl_minutes: int = 60 * 24 * 7
+    google_oauth_client_id: Optional[str] = None
+    debug_admin_key: Optional[str] = None
 
     class Config:
         env_file = ".env"
